@@ -1,0 +1,23 @@
+do $$ begin
+  if not exists (select 1 from pg_roles where rolname='anon') then create role anon; end if;
+  if not exists (select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if;
+  if not exists (select 1 from pg_roles where rolname='service_role') then create role service_role; end if;
+  if not exists (select 1 from pg_roles where rolname='supabase_auth_admin') then create role supabase_auth_admin; end if;
+  if not exists (select 1 from pg_roles where rolname='authenticator') then create role authenticator; end if;
+end $$;
+alter role anon nologin noinherit;
+alter role authenticated nologin noinherit;
+alter role service_role nologin noinherit bypassrls;
+alter role supabase_auth_admin login password 'senha' noinherit createrole;
+alter role authenticator login password 'senha' noinherit;
+grant anon, authenticated, service_role to authenticator;
+create schema auth authorization supabase_auth_admin;
+create schema extensions;
+create extension pgcrypto with schema extensions;
+grant usage on schema public, extensions to anon, authenticated, service_role;
+grant usage on schema auth to anon, authenticated, service_role;
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
+grant create on database e2e to supabase_auth_admin;
+alter role supabase_auth_admin set search_path = auth;
